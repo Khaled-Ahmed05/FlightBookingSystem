@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Search Flights | Flight Booking</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+  <script src="../js/passenger.js"></script>
+</head>
+
+<body>
+  <div class="container">
+    <h2>Search Flights</h2>
+    <input type="text" id="from" placeholder="From City">
+    <input type="text" id="to" placeholder="To City">
+    <button id="searchBtn">Search</button>
+
+    <h3>Results</h3>
+    <table id="resultsTable">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Fees</th>
+          <th>Max Passengers</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <div id="alertContainer"></div>
+  </div>
+</body>
+<script>
+  let allFlights = [];
+
+  function renderFlights(flights) {
+    let tbody = '';
+    flights.forEach(f => {
+      tbody += `<tr onclick="window.location.href='flight_info.html?flight_id=${f.id}'">
+        <td>${f.name}</td>
+        <td>${f.fees}</td>
+        <td>${f.max_passengers}</td>
+      </tr>`;
+    });
+    $('#resultsTable tbody').html(tbody);
+  }
+
+  $(document).ready(function () {
+    $.getJSON('../../backend/api/passenger/list_flights.php', function (res) {
+      if (res.success) {
+        allFlights = res.data;
+        renderFlights(allFlights);
+      } else {
+        showAlert(res.message, 'error');
+      }
+    });
+
+    $('#searchBtn').click(function () {
+      const from = $('#from').val().trim().toLowerCase();
+      const to = $('#to').val().trim().toLowerCase();
+
+      const filtered = allFlights.filter(f => {
+        const cities = f.itinerary.map(i => i.city.toLowerCase());
+        const matchesFrom = !from || cities.includes(from);
+        const matchesTo = !to || cities.includes(to);
+        return matchesFrom && matchesTo;
+      });
+
+      if (filtered.length === 0) {
+        showAlert('No flights match your search', 'info');
+      }
+
+      renderFlights(filtered);
+    });
+  });
+
+  function showAlert(message, type = 'info') {
+    const alertBox = $(`<div class="alert alert-${type}">${message}</div>`);
+    $('#alertContainer').append(alertBox);
+    setTimeout(() => {
+      alertBox.fadeOut(500, function () { $(this).remove(); });
+    }, 3000);
+  }
+</script>
+
+</html>

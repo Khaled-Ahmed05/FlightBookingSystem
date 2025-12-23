@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Register | Flight Booking</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+  <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+  <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+  <script src="../js/auth.js"></script>
+</head>
+
+<body>
+  <div class="container">
+    <h2>Register</h2>
+    <div class="alert" id="alertBox"></div>
+    <form id="registerForm">
+      <input type="text" name="name" placeholder="Full Name" required>
+      <input type="email" name="email" placeholder="Email" required>
+      <input type="password" name="password" placeholder="Password" required>
+      <input type="tel" name="tel" placeholder="Phone">
+      <select name="type" required>
+        <option value="">Select User Type</option>
+        <option value="company">Company</option>
+        <option value="passenger">Passenger</option>
+      </select>
+      <button type="submit">Register</button>
+    </form>
+    <p>Already have an account? <a href="login.html">Login here</a></p>
+  </div>
+
+  <script>
+    $('#registerForm').submit(function (e) {
+      e.preventDefault();
+      const data = {
+        name: this.name.value,
+        email: this.email.value,
+        password: this.password.value,
+        tel: this.tel.value,
+        type: this.type.value
+      };
+      register(data, function (res) {
+        if (res.success) {
+          showAlert('success', res.message);
+          setTimeout(() => location.href = 'login.html', 1500);
+        } else showAlert('error', res.message);
+      });
+    });
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Company Home | Flight Booking</title>
+
+  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css" />
+  <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/jquery-ui-timepicker-addon/1.6.3/jquery-ui-timepicker-addon.min.css" />
+
+  <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+  <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+  <script
+    src="https://cdnjs.cloudflare.com/ajax/libs/jquery-ui-timepicker-addon/1.6.3/jquery-ui-timepicker-addon.min.js"></script>
+  <script src="../js/company.js"></script>
+</head>
+
+<body>
+  <div class="container">
+    <h2>Company Dashboard</h2>
+    <img id="logo" src="../assets/images/default_logo.png" alt="Logo" />
+    <p>Name: <span id="name"></span></p>
+    <p>Bio: <span id="bio"></span></p>
+    <p>Address: <span id="address"></span></p>
+    <p>Account Balance: $<span id="account_balance"></span></p>
+
+    <button onclick="window.location.href='company_profile.html'">
+      Edit Profile
+    </button>
+
+    <div id="messagesModal" class="modal" style="display: none">
+      <div class="modal-content" style="width: 600px; max-width: 95%">
+        <span class="modal-close">&times;</span>
+        <h3>Messages</h3>
+        <select id="messageWithSelect" style="width: 100%; margin-bottom: 10px"></select>
+        <div id="messagesContainer" style="
+              border: 1px solid #ccc;
+              height: 300px;
+              overflow-y: scroll;
+              padding: 5px;
+              margin-bottom: 10px;
+            "></div>
+        <textarea id="replyText" placeholder="Type your reply..." style="width: 100%"></textarea>
+        <button id="sendReplyBtn">Send</button>
+      </div>
+    </div>
+
+    <button id="openMessagesBtn">Messages</button>
+
+    <button id="addFlightBtn">Add New Flight</button>
+
+    <h3>Flights</h3>
+    <table id="flightsTable">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Passengers</th>
+          <th>Fees</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div id="addFlightModal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close">&times;</span>
+      <h3>Add New Flight</h3>
+      <form id="addFlightForm" enctype="multipart/form-data">
+        <input type="text" name="name" placeholder="Flight Name" required />
+        <input type="number" name="fees" placeholder="Fees" required />
+        <input type="number" name="max_passengers" placeholder="Max Passengers" required />
+        <div id="itineraryContainer">
+          <h4>Itinerary</h4>
+          <button type="button" id="addCityBtn">Add City</button>
+        </div>
+        <button type="submit">Add Flight</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    $(document).ready(function () {
+      loadCompanyProfile();
+
+      $("#addFlightBtn").click(() => $("#addFlightModal").fadeIn());
+      $(".modal-close").click(() => $(".modal").fadeOut());
+
+      $("#addCityBtn").click(function () {
+        $("#itineraryContainer").append(`
+          <div class="itineraryRow">
+            <input name="city[]" placeholder="City" required>
+            <input type="text" class="datetimepicker" name="start[]" placeholder="Start Time" required>
+            <input type="text" class="datetimepicker" name="end[]" placeholder="End Time" required>
+          </div>
+        `);
+
+        $(".datetimepicker").datetimepicker({
+          dateFormat: "yy-mm-dd",
+          timeFormat: "HH:mm",
+        });
+      });
+
+      $("#addFlightForm").submit(function (e) {
+        e.preventDefault();
+        addFlight();
+      });
+    });
+  </script>
+
+  <script>
+    $(document).ready(function () {
+      l;
+      $("#openMessagesBtn").click(function () {
+        $("#messagesModal").fadeIn();
+        loadMessagePartners();
+      });
+
+      $(".modal-close").click(function () {
+        $(".modal").fadeOut();
+      });
+
+      let currentPartnerId = null;
+      let currentPartnerType = null;
+
+      function loadMessagePartners() {
+        $("#messageWithSelect").empty();
+        $.getJSON("../../backend/api/message/partners.php", function (res) {
+          if (res.success) {
+            res.data.forEach((p) => {
+              $("#messageWithSelect").append(
+                `<option value="${p.id}" data-type="${p.type}">${p.name}</option>`
+              );
+            });
+            $("#messageWithSelect").trigger("change");
+          }
+        });
+      }
+
+      $("#messageWithSelect").change(function () {
+        currentPartnerId = parseInt($(this).val());
+        currentPartnerType = $("#messageWithSelect option:selected").data(
+          "type"
+        );
+        loadMessages();
+      });
+
+      function loadMessages() {
+        if (!currentPartnerId || !currentPartnerType) return;
+
+        $.getJSON(
+          "../../backend/api/message/list.php",
+          {
+            with_id: currentPartnerId,
+            with_type: currentPartnerType,
+          },
+          function (res) {
+            if (res.success) {
+              let html = "";
+              res.data.forEach((m) => {
+                let sender =
+                  m.sender_type === "company" ? "You" : m.sender_type;
+                html += `<p><strong>${sender}:</strong> ${m.message}</p>`;
+              });
+              $("#messagesContainer").html(html);
+              $("#messagesContainer").scrollTop(
+                $("#messagesContainer")[0].scrollHeight
+              );
+            }
+          }
+        );
+      }
+
+      $("#sendReplyBtn").click(function () {
+        const msg = $("#replyText").val().trim();
+        if (!msg || !currentPartnerId || !currentPartnerType)
+          return alert("Select partner and type a message");
+
+        $.ajax({
+          url: "../../backend/api/message/send.php",
+          method: "POST",
+          contentType: "application/json",
+          data: JSON.stringify({
+            receiver_id: currentPartnerId,
+            receiver_type: currentPartnerType,
+            message: msg,
+          }),
+          success: function (res) {
+            if (res.success) {
+              $("#replyText").val("");
+              loadMessages();
+            } else alert(res.message);
+          },
+        });
+      });
+
+      setInterval(loadMessages, 5000);
+    });
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Flight Info | Flight Booking</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css" />
+  <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+  <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+  <script src="../js/flight.js"></script>
+</head>
+
+<body>
+  <div class="container">
+    <h2 id="flightName"></h2>
+    <p>Flight ID: <span id="flightId"></span></p>
+    <p>Fees: $<span id="fees"></span></p>
+    <p>Max Passengers: <span id="max"></span></p>
+
+    <h3>Itinerary</h3>
+    <table id="itineraryTable">
+      <thead>
+        <tr>
+          <th>City</th>
+          <th>Start</th>
+          <th>End</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <h3>Registered Passengers</h3>
+    <div id="passengersList"></div>
+
+    <div id="passengerActions" style="margin-top:20px; display:none;">
+      <button id="takeFlightBtn">Take this Flight</button>
+      <button id="messageCompanyBtn">Message Company</button>
+    </div>
+  </div>
+
+  <script>
+    let currentFlight = null;
+
+    $(document).ready(function () {
+      const flightId = parseInt(getQueryParam("flight_id"), 10);
+
+      loadFlightInfo(flightId, function (flight) {
+        currentFlight = flight;
+      });
+
+      $.getJSON('../../backend/api/auth/me.php', function (res) {
+        if (res.success && res.data.type === 'passenger') {
+          $("#passengerActions").show();
+          $("#takeFlightBtn").click(() => takeFlight(flightId));
+          $("#messageCompanyBtn").click(() => messageCompany(currentFlight));
+        } else {
+          $("#passengerActions").hide();
+        }
+      });
+    });
+
+    function messageCompany(flight) {
+      if (!flight || !flight.company_id) {
+        alert("Cannot find company info for this flight.");
+        return;
+      }
+
+      $('<div><textarea id="msgText" placeholder="Type your message"></textarea></div>').dialog({
+        title: "Message Company",
+        modal: true,
+        width: 400,
+        buttons: {
+          Send: function () {
+            const msg = $('#msgText').val().trim();
+            if (!msg) { alert("Message cannot be empty"); return; }
+
+            const payload = {
+              receiver_id: flight.company_real_id,
+              receiver_type: "company",
+              flight_id: flight.flight_id,
+              message: msg
+            };
+
+            $.ajax({
+              url: '../../backend/api/message/send.php',
+              method: 'POST',
+              contentType: 'application/json',
+              data: JSON.stringify(payload),
+              dataType: 'json',
+              success: function (res) { alert(res.message); },
+              error: function (xhr, status, error) { alert("Failed to send message: " + error); }
+            });
+
+            $(this).dialog("close");
+          },
+          Cancel: function () { $(this).dialog("close"); }
+        }
+      });
+    }
+  </script>
+</body>
+
+</html>

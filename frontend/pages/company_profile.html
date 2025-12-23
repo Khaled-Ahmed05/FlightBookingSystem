@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Company Profile | Flight Booking</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+  <script src="../js/company.js"></script>
+</head>
+
+<body>
+  <div class="container">
+    <h2>Company Profile</h2>
+    <img id="logo" src="../assets/images/default_logo.png" alt="Logo" />
+    <form id="profileForm" enctype="multipart/form-data">
+      <input type="text" id="name" name="name" placeholder="Company Name" />
+      <textarea id="bio" name="bio" placeholder="Bio"></textarea>
+      <input type="text" id="address" name="address" placeholder="Address" />
+      <input type="text" id="location" name="location" placeholder="Location (Optional)" />
+      <input type="number" id="account_balance" name="account_balance" placeholder="Account Balance" />
+      <input type="file" name="logo" />
+      <button type="submit">Save</button>
+    </form>
+  </div>
+
+  <script>
+    $(document).ready(function () {
+      loadCompanyProfile();
+      $("#profileForm").submit(function (e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        $.ajax({
+          url: "../../backend/api/company/profile.php",
+          method: "POST",
+          data: formData,
+          processData: false,
+          contentType: false,
+          dataType: "json",
+          success: function (res) {
+            showAlert(res.success ? "success" : "error", res.message);
+            loadCompanyProfile();
+          },
+        });
+      });
+    });
+  </script>
+</body>
+
+</html>

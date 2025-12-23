@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Passenger Home | Flight Booking</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css" />
+  <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+  <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+  <script src="../js/passenger.js"></script>
+</head>
+
+<body>
+  <div class="container">
+    <h2>Passenger Dashboard</h2>
+    <img id="photo" src="../assets/images/default_user.png" alt="Photo" />
+    <p>Name: <span id="name"></span></p>
+    <p>Email: <span id="email"></span></p>
+    <p>Tel: <span id="tel"></span></p>
+    <p>Account Balance: $<span id="account_balance"></span></p>
+
+    <button onclick="window.location.href='passenger_profile.html'">
+      Edit Profile
+    </button>
+
+    <div id="messagesModal" class="modal" style="display:none;">
+      <div class="modal-content" style="width:600px; max-width:95%;">
+        <span class="modal-close">&times;</span>
+        <h3>Messages</h3>
+        <select id="messageWithSelect" style="width:100%; margin-bottom:10px;">
+        </select>
+        <div id="messagesContainer"
+          style="border:1px solid #ccc; height:300px; overflow-y:scroll; padding:5px; margin-bottom:10px;"></div>
+        <textarea id="replyText" placeholder="Type your reply..." style="width:100%;"></textarea>
+        <button id="sendReplyBtn">Send</button>
+      </div>
+    </div>
+
+    <button id="openMessagesBtn">Messages</button>
+
+    <button onclick="window.location.href='search_flight.html'">
+      Search Flights
+    </button>
+
+    <h3>Current Flights</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Fees</th>
+          <th>Status</th>
+          <th>Start time</th>
+        </tr>
+      </thead>
+      <tbody id="currentFlights"></tbody>
+    </table>
+
+    <h3>Completed Flights</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Fees</th>
+          <th>Status</th>
+          <th>Start time</th>
+        </tr>
+      </thead>
+      <tbody id="completedFlights"></tbody>
+    </table>
+  </div>
+
+  <script>
+    $(document).ready(function () {
+      loadPassengerProfile();
+      loadPassengerFlights();
+    });
+  </script>
+
+  <script>
+    $(document).ready(function () {
+      $('#openMessagesBtn').click(function () {
+        $('#messagesModal').fadeIn();
+        loadMessagePartners();
+      });
+
+      $('.modal-close').click(function () {
+        $('.modal').fadeOut();
+      });
+
+      let currentPartnerId = null;
+      let currentPartnerType = null;
+
+      function loadMessagePartners() {
+        $('#messageWithSelect').empty();
+        $.getJSON('../../backend/api/message/partners.php', function (res) {
+          if (res.success) {
+            res.data.forEach(p => {
+              $('#messageWithSelect').append(`<option value="${p.id}" data-type="${p.type}">${p.name}</option>`);
+            });
+            $('#messageWithSelect').trigger('change');
+          }
+        });
+      }
+
+      $('#messageWithSelect').change(function () {
+        currentPartnerId = parseInt($(this).val());
+        currentPartnerType = $('#messageWithSelect option:selected').data('type');
+        loadMessages();
+      });
+
+      function loadMessages() {
+        if (!currentPartnerId || !currentPartnerType) return;
+
+        $.getJSON('../../backend/api/message/list.php', {
+          with_id: currentPartnerId,
+          with_type: currentPartnerType
+        }, function (res) {
+          if (res.success) {
+            let html = '';
+            res.data.forEach(m => {
+              let sender = (m.sender_type === "passenger") ? 'You' : m.sender_type;
+              html += `<p><strong>${sender}:</strong> ${m.message}</p>`;
+            });
+            $('#messagesContainer').html(html);
+            $('#messagesContainer').scrollTop($('#messagesContainer')[0].scrollHeight);
+          }
+        });
+      }
+
+      $('#sendReplyBtn').click(function () {
+        const msg = $('#replyText').val().trim();
+        if (!msg || !currentPartnerId || !currentPartnerType) return alert('Select partner and type a message');
+
+        $.ajax({
+          url: '../../backend/api/message/send.php',
+          method: 'POST',
+          contentType: 'application/json',
+          data: JSON.stringify({
+            receiver_id: currentPartnerId,
+            receiver_type: currentPartnerType,
+            message: msg
+          }),
+          success: function (res) {
+            if (res.success) {
+              $('#replyText').val('');
+              loadMessages();
+            } else alert(res.message);
+          }
+        });
+      });
+
+      setInterval(loadMessages, 5000);
+    });
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Passenger Profile | Flight Booking</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+  <script src="../js/passenger.js"></script>
+</head>
+
+<body>
+  <div class="container">
+    <h2>Passenger Profile</h2>
+    <img id="photo" src="../assets/images/default_user.png" alt="Photo" />
+    <img id="passport" src="../assets/images/default_passport.png" alt="Passport" />
+    <hr />
+    <form id="profileForm" enctype="multipart/form-data">
+      <input type="text" id="name" name="name" placeholder="Full Name" />
+      <input type="email" id="email" name="email" placeholder="Email" disabled />
+      <input type="tel" id="tel" name="tel" placeholder="Phone" />
+      <input type="number" id="account_balance" name="account_balance" placeholder="Account Balance" />
+      <label for="photo">Profile picture</label>
+      <input type="file" name="photo" />
+      <label for="passport_img">Passport</label>
+      <input type="file" name="passport_img" />
+      <button type="submit">Save</button>
+    </form>
+  </div>
+
+  <script>
+    $(document).ready(function () {
+      loadPassengerProfile();
+      $("#profileForm").submit(function (e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        $.ajax({
+          url: "../../backend/api/passenger/profile.php",
+          method: "POST",
+          data: formData,
+          processData: false,
+          contentType: false,
+          dataType: "json",
+          success: function (res) {
+            showAlert(res.success ? "success" : "error", res.message);
+            loadPassengerProfile();
+          },
+        });
+      });
+      showAlert = function (type, message) {
+        const alertDiv = $(
+          `<div class="alert ${type}">${message}</div>`
+        ).appendTo("body");
+        setTimeout(() => {
+          alertDiv.fadeOut(500, () => alertDiv.remove());
+        }, 3000);
+      };
+    });
+  </script>
+</body>
+
+</html>
